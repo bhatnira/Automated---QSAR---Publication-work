@@ -1,0 +1,94 @@
+[13:09:11] Can't kekulize mol.  Unkekulized atoms: 2 3 4 5 6 7 10
+[13:09:11] Can't kekulize mol.  Unkekulized atoms: 2 3 4 5 6 7 8 9 10
+[13:09:11] Can't kekulize mol.  Unkekulized atoms: 7 8 9 10 11 12 13 14 15
+[13:09:11] Can't kekulize mol.  Unkekulized atoms: 2 3 4 5 6 7 11 12 15 16 17 18 19 20 21
+Traceback (most recent call last):
+  File "/Users/nb/Desktop/Automated---QSAR---Publication-work/test_ic50_dataset.py", line 138, in <module>
+    for model_name, metrics in results['model_performance'].items():
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'list' object has no attribute 'items'
+======================================================================
+AutoML QSAR - IC50 Dataset Test
+======================================================================
+
+[1] Creating sample IC50 dataset (kinase inhibitors)...
+✓ Created 40 kinase inhibitor structures
+  IC50 range: 2.5 - 22000.0 nM
+  pIC50 range: 4.66 - 8.60
+  Active compounds (IC50 < 100 nM): 12
+  Moderately active (100-1000 nM): 12
+  Weak/Inactive (> 1000 nM): 16
+✓ Saved to kinase_ic50_dataset.csv
+
+Sample compounds:
+   IC50_nM     pIC50
+0      2.5  8.602060
+1      5.8  8.236572
+2     12.3  7.910095
+3      8.7  8.060481
+4  15000.0  4.823909
+5    850.0  6.070581
+6   1200.0  5.920819
+7   3400.0  5.468521
+8    920.0  6.036212
+9     45.0  7.346787
+
+[2] Testing AutoML QSAR pipeline with IC50 data...
+Loaded 40 molecules
+✓ Data loaded successfully
+
+[3] Training models...
+==================================================
+AutoML QSAR Pipeline
+==================================================
+
+[1/6] Featurization...
+Using featurizer: RDKitDescriptors
+Generated 22 features
+
+[2/6] Preprocessing...
+Scaled features
+
+[3/6] Model Selection...
+Warning: PyTorch not available. Using sklearn MLPRegressor instead.
+Warning: PyTorch Geometric not available. GNN model cannot be used.
+Training Ridge...
+Error training ridge: Found input variables with inconsistent numbers of samples: [36, 40]
+Warning: PyTorch not available. Using sklearn MLPRegressor instead.
+Warning: PyTorch Geometric not available. GNN model cannot be used.
+Training RandomForest...
+Error training randomforest: Found input variables with inconsistent numbers of samples: [36, 40]
+Warning: PyTorch not available. Using sklearn MLPRegressor instead.
+Warning: PyTorch Geometric not available. GNN model cannot be used.
+Training XGBoost...
+Error training xgboost: [13:09:11] /Users/runner/work/xgboost/xgboost/src/data/data.cc:557: Check failed: this->labels.Size() % this->num_row_ == 0 (4 vs. 0) : Incorrect size for labels: (40,1) v.s. 36
+Stack trace:
+  [bt] (0) 1   libxgboost.dylib                    0x000000011d374fec dmlc::LogMessageFatal::~LogMessageFatal() + 124
+  [bt] (1) 2   libxgboost.dylib                    0x000000011d50ee94 xgboost::MetaInfo::SetInfoFromHost(xgboost::Context const*, xgboost::StringView, xgboost::Json) + 2580
+  [bt] (2) 3   libxgboost.dylib                    0x000000011d50e2f4 xgboost::MetaInfo::SetInfo(xgboost::Context const&, xgboost::StringView, xgboost::StringView) + 464
+  [bt] (3) 4   libxgboost.dylib                    0x000000011d38b610 XGDMatrixSetInfoFromInterface + 228
+  [bt] (4) 5   libffi.dylib                        0x000000019c2fc050 ffi_call_SYSV + 80
+  [bt] (5) 6   libffi.dylib                        0x000000019c304af0 ffi_call_int + 1220
+  [bt] (6) 7   _ctypes.cpython-314-darwin.so       0x00000001016d7028 _ctypes_callproc + 1040
+  [bt] (7) 8   _ctypes.cpython-314-darwin.so       0x00000001016cd554 PyCFuncPtr_call + 424
+  [bt] (8) 9   Python                              0x0000000102455f4c _PyEval_EvalFrameDefault + 92632
+
+
+
+[4/6] Hyperparameter Optimization...
+Using 0 models (HPO to be implemented)
+
+[5/6] Model Evaluation...
+
+[6/6] Building Ensemble...
+Built TopKEnsemble with 0 models
+
+==================================================
+Pipeline Complete!
+==================================================
+✓ Training complete!
+
+[4] Model Performance:
+--------------------------------------------------
+
+✗ Test failed: 'list' object has no attribute 'items'
