@@ -1,0 +1,756 @@
+\documentclass[11pt,a4paper]{article}
+
+% Packages
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows, positioning, fit, backgrounds, calc}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{float}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{tocloft}
+
+% Colors
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+\definecolor{classcolor}{RGB}{173,216,230}
+\definecolor{modulecolor}{RGB}{144,238,144}
+\definecolor{interfacecolor}{RGB}{255,218,185}
+
+% Code listing style
+\lstdefinestyle{pythonstyle}{
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbers=left,
+    numbersep=5pt,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=2,
+    language=Python
+}
+\lstset{style=pythonstyle}
+
+% Header/Footer
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{AutoML QSAR Documentation}
+\lhead{\leftmark}
+\rfoot{Page \thepage}
+
+% Title
+\title{
+    \vspace{-2cm}
+    \textbf{AutoML QSAR Pipeline}\\
+    \large Automated Machine Learning for Quantitative Structure-Activity Relationship Modeling\\
+    \vspace{0.5cm}
+    \large Technical Documentation \& Architecture
+}
+\author{QSAR Development Team}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+\newpage
+
+% ============================================================================
+\section{Introduction}
+% ============================================================================
+
+\subsection{Overview}
+
+The \textbf{AutoML QSAR Pipeline} is a comprehensive automated machine learning framework designed for predicting biological activity of molecules based on their chemical structure. This system automates the entire workflow from data curation to model deployment, making QSAR modeling accessible and reproducible.
+
+\subsection{Key Features}
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Automated Data Curation}: SMILES validation, duplicate handling, task type inference
+    \item \textbf{Multi-Task Support}: Regression, classification, and mixed task handling
+    \item \textbf{Multiple Featurization Methods}: RDKit descriptors, ECFP fingerprints, MACCS keys
+    \item \textbf{Ensemble Learning}: Combines multiple models for robust predictions
+    \item \textbf{Hyperparameter Optimization}: Bayesian optimization with Optuna
+    \item \textbf{Uncertainty Quantification}: Provides confidence estimates for predictions
+    \item \textbf{Model Persistence}: Save and load trained models
+\end{itemize}
+
+\subsection{Scientific Background}
+
+QSAR (Quantitative Structure-Activity Relationship) models establish mathematical relationships between molecular structure and biological activity. The fundamental equation is:
+
+\begin{equation}
+    \text{Activity} = f(\text{Molecular Descriptors})
+\end{equation}
+
+For IC50 (half-maximal inhibitory concentration) prediction, we use the pIC50 transformation:
+
+\begin{equation}
+    \text{pIC50} = -\log_{10}(\text{IC50}_M) = 9 - \log_{10}(\text{IC50}_{nM})
+\end{equation}
+
+This logarithmic transformation provides:
+\begin{itemize}
+    \item Normal distribution of target values
+    \item Equal weighting across activity ranges
+    \item Interpretable units (higher pIC50 = more potent)
+\end{itemize}
+
+% ============================================================================
+\section{System Architecture}
+% ============================================================================
+
+\subsection{High-Level Architecture}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=1.5cm,
+    box/.style={rectangle, draw, rounded corners, minimum width=3cm, minimum height=1cm, align=center, fill=classcolor},
+    arrow/.style={->, >=stealth, thick}
+]
+    % Input
+    \node[box, fill=interfacecolor] (input) {Input Data\\(SMILES + Activity)};
+    
+    % Processing pipeline
+    \node[box, below=of input] (curation) {Data Curation\\Agent};
+    \node[box, below=of curation] (feature) {Featurization\\Module};
+    \node[box, below=of feature] (model) {Model\\Explorer};
+    \node[box, below=of model] (optimize) {Hyperparameter\\Optimizer};
+    \node[box, below=of optimize] (ensemble) {Ensemble\\Builder};
+    
+    % Output
+    \node[box, fill=modulecolor, below=of ensemble] (output) {Trained Model\\+ Predictions};
+    
+    % Arrows
+    \draw[arrow] (input) -- (curation);
+    \draw[arrow] (curation) -- (feature);
+    \draw[arrow] (feature) -- (model);
+    \draw[arrow] (model) -- (optimize);
+    \draw[arrow] (optimize) -- (ensemble);
+    \draw[arrow] (ensemble) -- (output);
+    
+    % Side annotations
+    \node[right=0.5cm of curation, text width=4cm, font=\small] {SMILES validation\\Task inference\\Label encoding};
+    \node[right=0.5cm of feature, text width=4cm, font=\small] {RDKit descriptors\\ECFP fingerprints\\MACCS keys};
+    \node[right=0.5cm of model, text width=4cm, font=\small] {Ridge, Lasso\\RandomForest, XGBoost\\SVR, KernelRidge};
+    \node[right=0.5cm of optimize, text width=4cm, font=\small] {Bayesian optimization\\Cross-validation};
+    
+\end{tikzpicture}
+\caption{High-Level Pipeline Architecture}
+\end{figure}
+
+\subsection{Package Structure}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=0.8cm,
+    package/.style={rectangle, draw, minimum width=4cm, minimum height=0.8cm, fill=modulecolor, font=\ttfamily\small},
+    module/.style={rectangle, draw, minimum width=3.5cm, minimum height=0.6cm, fill=classcolor, font=\ttfamily\footnotesize},
+    arrow/.style={->, >=stealth}
+]
+    % Main package
+    \node[package, minimum width=12cm, minimum height=1cm] (main) {automl\_qsar/};
+    
+    % Subpackages - Row 1
+    \node[package, below=1cm of main, xshift=-4cm] (preprocess) {preprocessing/};
+    \node[package, below=1cm of main] (feature) {featurization/};
+    \node[package, below=1cm of main, xshift=4cm] (models) {models/};
+    
+    % Subpackages - Row 2
+    \node[package, below=3cm of main, xshift=-4cm] (optimize) {optimization/};
+    \node[package, below=3cm of main] (pipeline) {pipeline/};
+    \node[package, below=3cm of main, xshift=4cm] (eval) {evaluation/};
+    
+    % Modules under preprocessing
+    \node[module, below=0.3cm of preprocess] (dc) {data\_curation.py};
+    
+    % Modules under featurization
+    \node[module, below=0.3cm of feature] (fp) {fingerprints.py};
+    
+    % Modules under models
+    \node[module, below=0.3cm of models] (tree) {tree\_models.py};
+    
+    % Modules under pipeline
+    \node[module, below=0.3cm of pipeline] (automl) {automl\_regressor.py};
+    
+\end{tikzpicture}
+\caption{Package Structure}
+\end{figure}
+
+% ============================================================================
+\section{UML Class Diagrams}
+% ============================================================================
+
+\subsection{Data Curation Module}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    class/.style={rectangle, draw, minimum width=6cm, font=\small},
+    classname/.style={rectangle, draw, fill=classcolor, minimum width=6cm, font=\bfseries\small},
+    enum/.style={rectangle, draw, fill=interfacecolor, minimum width=4cm, font=\small},
+    enumname/.style={rectangle, draw, fill=interfacecolor!70, minimum width=4cm, font=\bfseries\small},
+    arrow/.style={->, >=open triangle 60, thick},
+    composition/.style={-*, thick},
+    node distance=0.1cm
+]
+
+    % TaskType Enum
+    \node[enumname] (taskname) {\guillemotleft enumeration\guillemotright\\TaskType};
+    \node[enum, below=0cm of taskname] (taskenum) {
+        \begin{tabular}{l}
+        REGRESSION\_SINGLE\\
+        REGRESSION\_MULTI\\
+        CLASSIFICATION\_BINARY\\
+        CLASSIFICATION\_MULTICLASS\\
+        CLASSIFICATION\_MULTILABEL\\
+        MIXED\\
+        UNKNOWN
+        \end{tabular}
+    };
+    
+    % TargetConfig dataclass
+    \node[classname, right=2cm of taskname] (targetname) {\guillemotleft dataclass\guillemotright\\TargetConfig};
+    \node[class, below=0cm of targetname] (targetattr) {
+        \begin{tabular}{l}
+        + name: str\\
+        + task\_type: TaskType\\
+        + unit: str = "nM"\\
+        + apply\_log: bool = False\\
+        + transform: str = "none"\\
+        + label\_encoder: Any\\
+        + classes: List[str]\\
+        + statistics: Dict
+        \end{tabular}
+    };
+    
+    % QSARDataCurationAgent
+    \node[classname, below=2cm of taskenum, xshift=3cm] (agentname) {QSARDataCurationAgent};
+    \node[class, below=0cm of agentname] (agentattr) {
+        \begin{tabular}{l}
+        \textbf{Attributes:}\\
+        - raw\_df: DataFrame\\
+        - smiles\_col: str\\
+        - target\_cols: List[str]\\
+        - target\_configs: Dict[str, TargetConfig]\\
+        - overall\_task: TaskType\\
+        - cleaned\_df: DataFrame\\
+        \hline
+        \textbf{Methods:}\\
+        + run() $\rightarrow$ DataFrame\\
+        + get\_statistics() $\rightarrow$ Dict\\
+        + get\_target\_configs() $\rightarrow$ Dict\\
+        + get\_label\_encoder(col) $\rightarrow$ LabelEncoder\\
+        - \_validate\_smiles()\\
+        - \_infer\_task\_type(series) $\rightarrow$ TaskType\\
+        - \_apply\_transformations()\\
+        - \_encode\_labels()
+        \end{tabular}
+    };
+    
+    % Relationships
+    \draw[arrow] (agentattr.north) -- ++(0,0.5) -| (taskenum.south);
+    \draw[composition] (agentattr.north) -- ++(0,0.5) -| (targetattr.south);
+    
+\end{tikzpicture}
+\caption{Data Curation Module Class Diagram}
+\end{figure}
+
+\subsection{Featurization Module}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    class/.style={rectangle, draw, minimum width=5cm, font=\small},
+    classname/.style={rectangle, draw, fill=classcolor, minimum width=5cm, font=\bfseries\small},
+    abstract/.style={rectangle, draw, fill=interfacecolor, minimum width=5cm, font=\small},
+    abstractname/.style={rectangle, draw, fill=interfacecolor!70, minimum width=5cm, font=\bfseries\itshape\small},
+    arrow/.style={->, >=open triangle 60, thick},
+    node distance=0.1cm
+]
+
+    % BaseFeaturizer (Abstract)
+    \node[abstractname] (basename) {\guillemotleft abstract\guillemotright\\BaseFeaturizer};
+    \node[abstract, below=0cm of basename] (baseattr) {
+        \begin{tabular}{l}
+        + name: str\\
+        + feature\_names: List[str]\\
+        \hline
+        + featurize(molecules) $\rightarrow$ ndarray\\
+        \# \_smiles\_to\_mol(smiles) $\rightarrow$ Mol\\
+        \# \_prepare\_molecules(mols) $\rightarrow$ List
+        \end{tabular}
+    };
+    
+    % Concrete implementations
+    \node[classname, below=1.5cm of baseattr, xshift=-4cm] (rdkitname) {RDKitDescriptors};
+    \node[class, below=0cm of rdkitname] (rdkitattr) {
+        \begin{tabular}{l}
+        + descriptor\_names: List\\
+        \hline
+        + featurize(smiles)\\
+        $\rightarrow$ ndarray (n, 200+)
+        \end{tabular}
+    };
+    
+    \node[classname, below=1.5cm of baseattr] (ecfpname) {ECFPFingerprints};
+    \node[class, below=0cm of ecfpname] (ecfpattr) {
+        \begin{tabular}{l}
+        + radius: int = 2\\
+        + n\_bits: int = 1024\\
+        \hline
+        + featurize(smiles)\\
+        $\rightarrow$ ndarray (n, 1024)
+        \end{tabular}
+    };
+    
+    \node[classname, below=1.5cm of baseattr, xshift=4cm] (maccsname) {MACCSFingerprints};
+    \node[class, below=0cm of maccsname] (maccsattr) {
+        \begin{tabular}{l}
+        \hline
+        + featurize(smiles)\\
+        $\rightarrow$ ndarray (n, 167)
+        \end{tabular}
+    };
+    
+    % Inheritance arrows
+    \draw[arrow] (rdkitname.north) -- ++(0,0.5) -| (baseattr.south);
+    \draw[arrow] (ecfpname.north) -- (baseattr.south);
+    \draw[arrow] (maccsname.north) -- ++(0,0.5) -| (baseattr.south);
+    
+\end{tikzpicture}
+\caption{Featurization Module Class Diagram}
+\end{figure}
+
+\subsection{AutoML Pipeline}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    class/.style={rectangle, draw, minimum width=5.5cm, font=\small},
+    classname/.style={rectangle, draw, fill=classcolor, minimum width=5.5cm, font=\bfseries\small},
+    arrow/.style={->, >=stealth, thick},
+    composition/.style={-*, thick},
+    node distance=0.1cm
+]
+
+    % AutoMLQSARRegressor (Main class)
+    \node[classname] (automlname) {AutoMLQSARRegressor};
+    \node[class, below=0cm of automlname] (automlattr) {
+        \begin{tabular}{l}
+        \textbf{Configuration:}\\
+        + featurizers: List[str]\\
+        + models: List[str]\\
+        + optimization\_method: str\\
+        + n\_trials: int\\
+        + cv\_folds: int\\
+        + ensemble\_method: str\\
+        \hline
+        \textbf{Components:}\\
+        - data\_validator: DataValidator\\
+        - feature\_explorer: FeatureSpaceExplorer\\
+        - model\_explorer: ModelExplorer\\
+        - hpo: HyperparameterOptimizer\\
+        - report\_generator: ReportGenerator\\
+        \hline
+        \textbf{Methods:}\\
+        + fit(X, y) $\rightarrow$ Dict\\
+        + predict(smiles) $\rightarrow$ ndarray\\
+        + predict\_with\_uncertainty()\\
+        + save(path)\\
+        + load(path)
+        \end{tabular}
+    };
+    
+    % Component classes
+    \node[classname, below=2cm of automlattr, xshift=-4cm] (validatorname) {DataValidator};
+    \node[class, below=0cm of validatorname, minimum width=4cm] (validatorattr) {
+        \begin{tabular}{l}
+        + validate(df)\\
+        + check\_outliers()\\
+        + detect\_noise()
+        \end{tabular}
+    };
+    
+    \node[classname, below=2cm of automlattr] (explorername) {FeatureSpaceExplorer};
+    \node[class, below=0cm of explorername, minimum width=4cm] (explorerattr) {
+        \begin{tabular}{l}
+        + explore(X)\\
+        + select\_features()\\
+        + reduce\_dimensions()
+        \end{tabular}
+    };
+    
+    \node[classname, below=2cm of automlattr, xshift=4cm] (hponame) {HyperparameterOptimizer};
+    \node[class, below=0cm of hponame, minimum width=4cm] (hpoattr) {
+        \begin{tabular}{l}
+        + method: str\\
+        + n\_trials: int\\
+        \hline
+        + optimize(model, X, y)
+        \end{tabular}
+    };
+    
+    % Composition relationships
+    \draw[composition] (automlattr.south) -- ++(0,-0.3) -| (validatorname.north);
+    \draw[composition] (automlattr.south) -- ++(0,-0.3) -- (explorername.north);
+    \draw[composition] (automlattr.south) -- ++(0,-0.3) -| (hponame.north);
+    
+\end{tikzpicture}
+\caption{AutoML Pipeline Class Diagram}
+\end{figure}
+
+% ============================================================================
+\section{Sequence Diagrams}
+% ============================================================================
+
+\subsection{Training Workflow}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    actor/.style={rectangle, draw, minimum width=2cm, minimum height=0.8cm, fill=interfacecolor},
+    lifeline/.style={dashed},
+    message/.style={->, >=stealth},
+    return/.style={->, >=stealth, dashed},
+    activation/.style={rectangle, draw, fill=classcolor, minimum width=0.3cm},
+    font=\small
+]
+    % Actors
+    \node[actor] (user) at (0,0) {User};
+    \node[actor] (automl) at (3,0) {AutoML};
+    \node[actor] (curation) at (6,0) {Curation};
+    \node[actor] (feature) at (9,0) {Featurizer};
+    \node[actor] (model) at (12,0) {Model};
+    
+    % Lifelines
+    \draw[lifeline] (user.south) -- ++(0,-10);
+    \draw[lifeline] (automl.south) -- ++(0,-10);
+    \draw[lifeline] (curation.south) -- ++(0,-10);
+    \draw[lifeline] (feature.south) -- ++(0,-10);
+    \draw[lifeline] (model.south) -- ++(0,-10);
+    
+    % Messages
+    \draw[message] (0,-1) -- node[above, font=\footnotesize] {1: fit(df)} (3,-1);
+    \draw[message] (3,-1.5) -- node[above, font=\footnotesize] {2: curate()} (6,-1.5);
+    \draw[return] (6,-2) -- node[above, font=\footnotesize] {cleaned\_df} (3,-2);
+    
+    \draw[message] (3,-2.5) -- node[above, font=\footnotesize] {3: featurize()} (9,-2.5);
+    \draw[return] (9,-3) -- node[above, font=\footnotesize] {X features} (3,-3);
+    
+    \draw[message] (3,-3.5) -- node[above, font=\footnotesize] {4: train()} (12,-3.5);
+    
+    % Loop box
+    \draw[thick] (2.5,-4) rectangle (12.5,-6);
+    \node[anchor=north west, font=\footnotesize\bfseries] at (2.6,-4) {loop [for each model]};
+    
+    \draw[message] (3,-4.5) -- node[above, font=\footnotesize] {5: optimize()} (12,-4.5);
+    \draw[return] (12,-5) -- node[above, font=\footnotesize] {best\_params} (3,-5);
+    \draw[message] (3,-5.5) -- node[above, font=\footnotesize] {6: cross\_validate()} (12,-5.5);
+    
+    \draw[return] (12,-6.5) -- node[above, font=\footnotesize] {cv\_scores} (3,-6.5);
+    
+    \draw[message] (3,-7) -- node[above, font=\footnotesize] {7: build\_ensemble()} (12,-7);
+    \draw[return] (12,-7.5) -- node[above, font=\footnotesize] {ensemble} (3,-7.5);
+    
+    \draw[return] (3,-8) -- node[above, font=\footnotesize] {results} (0,-8);
+    
+\end{tikzpicture}
+\caption{Training Workflow Sequence Diagram}
+\end{figure}
+
+% ============================================================================
+\section{Data Flow}
+% ============================================================================
+
+\subsection{Complete Pipeline Flow}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=1cm,
+    data/.style={rectangle, draw, rounded corners, minimum width=2.5cm, minimum height=0.8cm, fill=interfacecolor},
+    process/.style={rectangle, draw, minimum width=3cm, minimum height=0.8cm, fill=classcolor},
+    decision/.style={diamond, draw, minimum width=2cm, minimum height=1cm, fill=modulecolor, aspect=2},
+    arrow/.style={->, >=stealth, thick},
+    font=\small
+]
+    % Input
+    \node[data] (input) {Raw CSV\\(SMILES + IC50)};
+    
+    % Curation steps
+    \node[process, below=of input] (validate) {Validate SMILES};
+    \node[decision, below=of validate] (valid) {Valid?};
+    \node[process, right=1.5cm of valid] (remove) {Remove};
+    \node[process, below=of valid] (infer) {Infer Task Type};
+    
+    % Task type branch
+    \node[decision, below=of infer] (tasktype) {Task?};
+    \node[process, left=1cm of tasktype] (regress) {Apply pIC50};
+    \node[process, right=1cm of tasktype] (classify) {Label Encode};
+    
+    % Feature extraction
+    \node[process, below=1.5cm of tasktype] (feature) {Extract Features};
+    \node[data, left=2cm of feature] (rdkit) {RDKit\\(200+ desc)};
+    \node[data, right=2cm of feature] (ecfp) {ECFP\\(1024 bits)};
+    
+    % Model training
+    \node[process, below=of feature] (train) {Train Models};
+    \node[process, below=of train] (optimize) {Optimize Hyperparams};
+    \node[process, below=of optimize] (ensemble) {Build Ensemble};
+    
+    % Output
+    \node[data, below=of ensemble] (output) {Trained Model};
+    
+    % Arrows
+    \draw[arrow] (input) -- (validate);
+    \draw[arrow] (validate) -- (valid);
+    \draw[arrow] (valid) -- node[right] {Yes} (infer);
+    \draw[arrow] (valid) -- node[above] {No} (remove);
+    \draw[arrow] (infer) -- (tasktype);
+    \draw[arrow] (tasktype) -- node[above] {Regr.} (regress);
+    \draw[arrow] (tasktype) -- node[above] {Class.} (classify);
+    \draw[arrow] (regress) |- (feature);
+    \draw[arrow] (classify) |- (feature);
+    \draw[arrow] (rdkit) -- (feature);
+    \draw[arrow] (ecfp) -- (feature);
+    \draw[arrow] (feature) -- (train);
+    \draw[arrow] (train) -- (optimize);
+    \draw[arrow] (optimize) -- (ensemble);
+    \draw[arrow] (ensemble) -- (output);
+    
+\end{tikzpicture}
+\caption{Complete Data Flow Diagram}
+\end{figure}
+
+% ============================================================================
+\section{Supported Task Types}
+% ============================================================================
+
+\begin{table}[H]
+\centering
+\caption{Supported Task Types and Handling}
+\begin{tabular}{@{}llll@{}}
+\toprule
+\textbf{Task Type} & \textbf{Example Target} & \textbf{Detection} & \textbf{Transformation} \\
+\midrule
+Regression (Single) & IC50\_nM & Continuous values & pIC50 (if nM/uM) \\
+Regression (Multi) & IC50\_A, IC50\_B & Multiple continuous & Per-target config \\
+Classification (Binary) & Active/Inactive & 2 unique strings & LabelEncoder (0/1) \\
+Classification (Multiclass) & High/Medium/Low & 3+ unique strings & LabelEncoder (0,1,2...) \\
+Classification (Multilabel) & [A,B], [B,C] & List values & MultiLabelBinarizer \\
+Mixed & IC50 + Toxicity & Combination & Auto-detect per column \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ============================================================================
+\section{Model Components}
+% ============================================================================
+
+\subsection{Available Models}
+
+\begin{table}[H]
+\centering
+\caption{Available Machine Learning Models}
+\begin{tabular}{@{}llp{6cm}@{}}
+\toprule
+\textbf{Category} & \textbf{Model} & \textbf{Description} \\
+\midrule
+\multirow{3}{*}{Linear} & Ridge & L2 regularized linear regression \\
+ & Lasso & L1 regularized (sparse features) \\
+ & ElasticNet & L1+L2 regularization \\
+\midrule
+\multirow{3}{*}{Tree-based} & RandomForest & Ensemble of decision trees \\
+ & GradientBoosting & Sequential boosting \\
+ & XGBoost & Optimized gradient boosting \\
+\midrule
+\multirow{2}{*}{Kernel} & SVR & Support Vector Regression \\
+ & KernelRidge & Kernel Ridge Regression \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Featurization Methods}
+
+\begin{table}[H]
+\centering
+\caption{Molecular Featurization Methods}
+\begin{tabular}{@{}lclp{5cm}@{}}
+\toprule
+\textbf{Method} & \textbf{Dimensions} & \textbf{Type} & \textbf{Description} \\
+\midrule
+RDKit Descriptors & 200+ & Continuous & Molecular properties (LogP, MW, TPSA, etc.) \\
+ECFP Fingerprints & 1024 & Binary & Circular substructure patterns \\
+MACCS Keys & 167 & Binary & Predefined structural keys \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ============================================================================
+\section{API Reference}
+% ============================================================================
+
+\subsection{QSARDataCurationAgent}
+
+\begin{lstlisting}[caption={Data Curation Usage}]
+from automl_qsar.preprocessing import QSARDataCurationAgent
+
+# Initialize with DataFrame
+agent = QSARDataCurationAgent(
+    df=dataframe,           # pandas DataFrame
+    smiles_col='SMILES',    # SMILES column name
+    target_cols='IC50_nM',  # Target column(s)
+    units='nM',             # Units for pIC50 transform
+    verbose=True            # Print progress
+)
+
+# Run curation
+cleaned_df = agent.run()
+
+# Get statistics
+stats = agent.get_statistics()
+# Returns: {'overall_task': 'regression_single', 
+#           'n_original': 100, 'n_cleaned': 95, ...}
+
+# Get target configurations
+configs = agent.get_target_configs()
+# Returns: {'IC50_nM': TargetConfig(...)}
+
+# Get label encoder (for classification)
+encoder = agent.get_label_encoder('Activity')
+original_labels = encoder.inverse_transform([0, 1])
+\end{lstlisting}
+
+\subsection{AutoMLQSARRegressor}
+
+\begin{lstlisting}[caption={AutoML Pipeline Usage}]
+from automl_qsar import AutoMLQSAR
+
+# Initialize
+automl = AutoMLQSAR(
+    featurizers=['rdkit', 'ecfp'],  # Feature types
+    models=['ridge', 'randomforest', 'xgboost'],
+    optimization_method='bayesian',
+    n_trials=50,           # Optimization trials
+    cv_folds=5,            # Cross-validation folds
+    ensemble_method='topk', # Ensemble strategy
+    random_state=42
+)
+
+# Train
+results = automl.fit(X, y)
+
+# Predict
+predictions = automl.predict(new_smiles)
+
+# Predict with uncertainty
+pred, uncertainty = automl.predict_with_uncertainty(smiles)
+
+# Save/Load
+automl.save('./model_path')
+automl.load('./model_path')
+\end{lstlisting}
+
+% ============================================================================
+\section{Metrics and Evaluation}
+% ============================================================================
+
+\subsection{Regression Metrics}
+
+\begin{align}
+\text{RMSE} &= \sqrt{\frac{1}{n}\sum_{i=1}^{n}(y_i - \hat{y}_i)^2} \\[0.5em]
+\text{MAE} &= \frac{1}{n}\sum_{i=1}^{n}|y_i - \hat{y}_i| \\[0.5em]
+R^2 &= 1 - \frac{\sum_{i=1}^{n}(y_i - \hat{y}_i)^2}{\sum_{i=1}^{n}(y_i - \bar{y})^2}
+\end{align}
+
+\subsection{Activity Classification}
+
+\begin{table}[H]
+\centering
+\caption{IC50 Activity Classification}
+\begin{tabular}{@{}ccc@{}}
+\toprule
+\textbf{IC50 Range} & \textbf{pIC50 Range} & \textbf{Activity Class} \\
+\midrule
+$<$ 100 nM & $>$ 7.0 & Strong (Potent) \\
+100--1000 nM & 6.0--7.0 & Moderate \\
+$>$ 1000 nM & $<$ 6.0 & Weak/Inactive \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ============================================================================
+\section{Testing and CI/CD}
+% ============================================================================
+
+\subsection{Test Structure}
+
+\begin{verbatim}
+tests/
+├── conftest.py              # Shared fixtures
+├── unit/                    # Unit tests (29 tests)
+│   ├── test_data_curation.py
+│   ├── test_featurizers.py
+│   └── test_models.py
+├── integration/             # Integration tests (7 tests)
+│   └── test_full_pipeline.py
+└── scenarios/               # Scenario tests (27 tests)
+    ├── test_regression_single.py
+    ├── test_regression_multi.py
+    ├── test_classification_binary.py
+    ├── test_classification_multiclass.py
+    ├── test_mixed_tasks.py
+    └── test_large_dataset.py
+\end{verbatim}
+
+\subsection{CI/CD Pipeline}
+
+The GitHub Actions workflow runs on every push:
+
+\begin{enumerate}
+    \item \textbf{Lint}: Code style check with flake8
+    \item \textbf{Unit Tests}: Python 3.9, 3.10, 3.11 matrix
+    \item \textbf{Integration Tests}: Full pipeline validation
+    \item \textbf{Scenario Tests}: Real-world use cases
+    \item \textbf{Coverage}: Code coverage reporting
+\end{enumerate}
+
+% ============================================================================
+\section{Conclusion}
+% ============================================================================
+
+The AutoML QSAR Pipeline provides a comprehensive, automated solution for molecular activity prediction. Key strengths include:
+
+\begin{itemize}
+    \item \textbf{Automation}: Minimal manual intervention required
+    \item \textbf{Flexibility}: Supports multiple task types and configurations
+    \item \textbf{Robustness}: Extensive validation and error handling
+    \item \textbf{Reproducibility}: Fixed random states and comprehensive logging
+    \item \textbf{Extensibility}: Modular design allows easy addition of new methods
+\end{itemize}
+
+For questions or contributions, please refer to the project repository.
+
+\end{document}
