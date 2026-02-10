@@ -2,7 +2,8 @@
 Graph-based molecular features
 """
 
-from typing import List, Union, Tuple
+from __future__ import annotations
+from typing import List, Union, Tuple, TYPE_CHECKING, Any
 import numpy as np
 from rdkit import Chem
 from .base import BaseFeaturizer
@@ -13,6 +14,7 @@ try:
     TORCH_AVAILABLE = True
 except ImportError:
     TORCH_AVAILABLE = False
+    Data = None  # Placeholder for type hints
 
 
 class GraphFeaturizer(BaseFeaturizer):
@@ -100,7 +102,7 @@ class GraphFeaturizer(BaseFeaturizer):
         
         return features
     
-    def mol_to_graph(self, mol: Chem.Mol) -> Data:
+    def mol_to_graph(self, mol: Chem.Mol) -> Any:
         """
         Convert RDKit molecule to PyTorch Geometric Data object
         
@@ -141,7 +143,7 @@ class GraphFeaturizer(BaseFeaturizer):
         
         return Data(x=x, edge_index=edge_index, edge_attr=edge_attr)
     
-    def featurize(self, molecules: Union[List[str], List[Chem.Mol]]) -> List[Data]:
+    def featurize(self, molecules: Union[List[str], List[Chem.Mol]]) -> List[Any]:
         """
         Convert molecules to graph representations
         
