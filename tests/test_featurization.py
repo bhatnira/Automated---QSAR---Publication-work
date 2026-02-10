@@ -38,7 +38,7 @@ class TestFeaturizers(unittest.TestCase):
         featurizer = MACCSFingerprints()
         X = featurizer.featurize(self.test_smiles)
         
-        self.assertEqual(X.shape, (len(self.test_smiles), 166))
+        self.assertEqual(X.shape, (len(self.test_smiles), 167))  # MACCS has 167 keys
         self.assertTrue(np.all((X == 0) | (X == 1)))
 
 

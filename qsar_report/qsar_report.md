@@ -1,53 +1,49 @@
 # AutoML QSAR Regression Report
 
-**Generated:** 2026-02-10 10:50:24
+**Generated:** 2026-02-10 12:20:23
 
 ---
 
 ## Executive Summary
 
 
-- **Dataset Size:** 37 molecules
+- **Dataset Size:** 49 molecules
 - **Best Model:** ridge
-- **Best RMSE:** 0.5515
-- **Best R²:** 0.7380
+- **Best RMSE:** 10304.1447
+- **Best R²:** -0.0324
 
 ## Data Validation
 
 | Check | Status | Details |
 |-------|--------|---------|
-| SMILES Validation | ⚠️ | 37/40 valid |
-| Outlier Detection | ✅ | 0 outliers found |
-| Duplicate Check | ✅ | 0 duplicates found |
+| SMILES Validation | ⚠️ | 49/50 valid |
+| Outlier Detection | ⚠️ | 10 outliers found |
+| Duplicate Check | ⚠️ | 4 duplicates found |
 
 ## Feature Space Exploration
 
 | Featurizer | Preprocessing | RMSE | Features |
 |------------|---------------|------|----------|
-| rdkit | standard | 0.5691 | 22 |
-| rdkit | robust | 0.5759 | 22 |
-| rdkit | minmax | 0.5787 | 22 |
-| ecfp | robust | 0.7923 | 2048 |
-| ecfp | minmax | 0.7923 | 2048 |
+| rdkit | standard | 10335.1919 | 22 |
+| rdkit | minmax | 10414.2062 | 22 |
+| rdkit | robust | 10415.2751 | 22 |
 
 ## Model Benchmarking
 
 | Model | Family | RMSE | RMSE Std |
 |-------|--------|------|----------|
-| ridge | linear | 0.5688 | 0.0971 |
-| randomforest | tree | 0.5795 | 0.1131 |
-| xgboost | tree | 0.7241 | 0.1946 |
+| ridge | linear | 9216.3739 | 4440.6353 |
 
 ## Hyperparameter Optimization
 
 - **Method:** bayesian
-- **Trials:** 5
-- **Best Score:** 0.5381
+- **Trials:** 2
+- **Best Score:** 9202.2825
 
 **Best Parameters:**
 ```json
 {
-  "alpha": 4.49627326002473
+  "alpha": 1.0311792892752611
 }
 ```
 
@@ -55,10 +51,10 @@
 
 | Metric | Value |
 |--------|-------|
-| RMSE | 0.5515 |
-| MAE | 0.4272 |
-| R² | 0.7380 |
-| Q² (CV) | 0.7380 |
+| RMSE | 10304.1447 |
+| MAE | 5728.0641 |
+| R² | -0.0324 |
+| Q² (CV) | -0.0324 |
 
 ---
 

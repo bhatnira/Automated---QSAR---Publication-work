@@ -1,0 +1,186 @@
+{
+  "featurizers": [
+    "rdkit"
+  ],
+  "models": [
+    "ridge",
+    "randomforest"
+  ],
+  "optimization_method": "bayesian",
+  "n_trials": 5,
+  "cv_folds": 5,
+  "best_params": {
+    "n_estimators": 139,
+    "max_depth": 16,
+    "min_samples_split": 3,
+    "min_samples_leaf": 1
+  },
+  "results": {
+    "validation": {
+      "smiles": {
+        "total": 29,
+        "valid": "29",
+        "invalid": 0,
+        "invalid_indices": []
+      },
+      "duplicates": {
+        "n_duplicates": "0",
+        "duplicate_indices": []
+      },
+      "outliers": {
+        "method": "iqr",
+        "threshold": 1.5,
+        "n_outliers": "0",
+        "outlier_indices": [],
+        "outlier_values": []
+      },
+      "noise": {
+        "method": "residual",
+        "threshold": 2.5,
+        "n_noisy": "3",
+        "noisy_indices": [
+          5,
+          6,
+          7
+        ],
+        "noise_scores": [
+          2.993933671528932,
+          3.73138680746342,
+          3.346902693856548
+        ]
+      }
+    },
+    "features": {
+      "best_configuration": {
+        "featurizer": "rdkit",
+        "n_features": 22,
+        "preprocessing": "robust",
+        "rmse": 0.4697820754404112,
+        "rmse_std": 0.14869751088383162
+      },
+      "all_results": [
+        {
+          "featurizer": "rdkit",
+          "n_features": 22,
+          "preprocessing": "robust",
+          "rmse": 0.4697820754404112,
+          "rmse_std": 0.14869751088383162
+        },
+        {
+          "featurizer": "rdkit",
+          "n_features": 22,
+          "preprocessing": "minmax",
+          "rmse": 0.4712051175338254,
+          "rmse_std": 0.15106693447414238
+        },
+        {
+          "featurizer": "rdkit",
+          "n_features": 22,
+          "preprocessing": "standard",
+          "rmse": 0.4718170001951106,
+          "rmse_std": 0.15154427232671833
+        }
+      ]
+    },
+    "models": {
+      "best_model": {
+        "model": "randomforest",
+        "family": "tree",
+        "rmse": 0.4321400955773781,
+        "rmse_std": 0.1942234223629425,
+        "r2": 0.6167766401958639
+      },
+      "all_results": [
+        {
+          "model": "randomforest",
+          "family": "tree",
+          "rmse": 0.4321400955773781,
+          "rmse_std": 0.1942234223629425,
+          "r2": 0.6167766401958639
+        },
+        {
+          "model": "ridge",
+          "family": "linear",
+          "rmse": 0.5004394467480738,
+          "rmse_std": 0.1929199575951427,
+          "r2": 0.4860676952722247
+        }
+      ]
+    },
+    "hpo": {
+      "best_params": {
+        "n_estimators": 139,
+        "max_depth": 16,
+        "min_samples_split": 3,
+        "min_samples_leaf": 1
+      },
+      "best_score": 0.4379257071835985,
+      "n_trials": 5,
+      "history": [
+        {
+          "trial": 0,
+          "value": 0.7349659310134286,
+          "params": {
+            "n_estimators": 204,
+            "max_depth": 18,
+            "min_samples_split": 8,
+            "min_samples_leaf": 9
+          }
+        },
+        {
+          "trial": 1,
+          "value": 0.7439280283667827,
+          "params": {
+            "n_estimators": 112,
+            "max_depth": 18,
+            "min_samples_split": 19,
+            "min_samples_leaf": 9
+          }
+        },
+        {
+          "trial": 2,
+          "value": 0.4379257071835985,
+          "params": {
+            "n_estimators": 139,
+            "max_depth": 16,
+            "min_samples_split": 3,
+            "min_samples_leaf": 1
+          }
+        },
+        {
+          "trial": 3,
+          "value": 0.5756189844932906,
+          "params": {
+            "n_estimators": 137,
+            "max_depth": 7,
+            "min_samples_split": 14,
+            "min_samples_leaf": 7
+          }
+        },
+        {
+          "trial": 4,
+          "value": 0.5783842034818345,
+          "params": {
+            "n_estimators": 153,
+            "max_depth": 6,
+            "min_samples_split": 13,
+            "min_samples_leaf": 4
+          }
+        }
+      ]
+    },
+    "final_metrics": {
+      "rmse": 0.48508108678978895,
+      "mae": 0.36838271254917265,
+      "r2": 0.5171285474107221,
+      "q2": 0.5171285474107221
+    },
+    "summary": {
+      "n_samples": 29,
+      "n_features": 22,
+      "best_model": "randomforest",
+      "best_rmse": 0.48508108678978895,
+      "best_r2": 0.5171285474107221
+    }
+  }
+}
