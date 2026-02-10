@@ -1,12 +1,13 @@
 """
 Data Preprocessing Module
 
-Provides scaling, dimensionality reduction, and feature selection methods.
+Provides scaling, dimensionality reduction, feature selection, and data curation.
 """
 
 from .scalers import StandardScaler, MinMaxScaler, RobustScaler
 from .feature_selection import VarianceThreshold, BorutaSelector, CorrelationSelector
 from .dimensionality_reduction import PCAReducer, UMAPReducer
+from .data_curation import QSARDataCurationAgent, curate_qsar_data
 
 __all__ = [
     "StandardScaler",
@@ -17,4 +18,6 @@ __all__ = [
     "CorrelationSelector",
     "PCAReducer",
     "UMAPReducer",
+    "QSARDataCurationAgent",
+    "curate_qsar_data",
 ]

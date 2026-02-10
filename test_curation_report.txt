@@ -1,0 +1,48 @@
+============================================================
+QSAR DATA CURATION REPORT
+============================================================
+
+Generated: 2026-02-10 11:16:08
+
+----------------------------------------
+CURATION LOG
+----------------------------------------
+Starting QSAR data curation pipeline
+Initial rows: 10
+SMILES column: SMILES
+Activity column: IC50
+Unit: nM
+SMILES validation: 9 valid, 1 invalid
+Duplicate molecules removed: 1
+Censored values: 1 left (<), 1 right (>)
+Invalid activity values removed: 1
+Inferred task type: MULTICLASS_CLASSIFICATION
+Classification task - no log transform applied
+Target statistics:
+  N: 7
+  Range: 1.000 - 10000.000
+  Mean ± Std: 1675.214 ± 3414.805
+✓ Final dataset size: 7
+✓ Pipeline completed successfully
+
+----------------------------------------
+STATISTICS
+----------------------------------------
+n_invalid_smiles: 1
+n_valid_smiles: 9
+n_duplicates: 1
+n_left_censored: 1
+n_right_censored: 1
+n_invalid_activity: 1
+task_type: MULTICLASS_CLASSIFICATION
+transform: none
+
+target_stats:
+  n_samples: 7
+  mean: 1675.2142857142858
+  std: 3414.8049709750503
+  min: 1.0
+  max: 10000.0
+  median: 100.0
+
+============================================================

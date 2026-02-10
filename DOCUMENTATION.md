@@ -130,6 +130,7 @@ Handles data scaling, feature selection, and dimensionality reduction.
 - **Scalers**: StandardScaler, MinMaxScaler, RobustScaler
 - **Feature Selection**: VarianceThreshold, CorrelationSelector, BorutaSelector
 - **Dimensionality Reduction**: PCA, UMAP
+- **Data Curation**: QSARDataCurationAgent
 
 **Example:**
 ```python
@@ -142,6 +143,63 @@ X_scaled = scaler.fit_transform(X)
 # Select features
 selector = BorutaSelector(n_estimators=100)
 X_selected = selector.fit_transform(X_scaled, y)
+```
+
+#### Data Curation Agent
+
+The `QSARDataCurationAgent` provides automated data curation with statistically-driven decisions:
+
+```python
+from automl_qsar.preprocessing import QSARDataCurationAgent, curate_qsar_data
+import pandas as pd
+
+# Load raw data
+df = pd.read_csv("raw_dataset.csv")
+
+# Initialize the curation agent
+agent = QSARDataCurationAgent(
+    df=df,
+    smiles_col="SMILES",
+    activity_col="IC50",
+    unit="nM"  # Supports nM, uM, mM
+)
+
+# Run the curation pipeline
+cleaned_df = agent.run()
+
+# Generate reports
+agent.generate_report("curation_report.txt")
+agent.generate_markdown_report("curation_report.md")
+
+# Get statistics
+stats = agent.get_statistics()
+print(f"Task type: {stats['task_type']}")
+print(f"Transform: {stats['transform']}")
+```
+
+**Features:**
+- SMILES validation and canonicalization
+- Duplicate molecule removal
+- Activity value extraction (handles >, <, ~ prefixes)
+- Censored data tracking (left/right censoring)
+- Task inference (regression vs classification)
+- Statistical log transformation decision (skewness, Shapiro-Wilk test)
+- pIC50 transformation when appropriate
+- Outlier detection (IQR, Z-score)
+- Automated report generation
+
+**Convenience Function:**
+```python
+from automl_qsar.preprocessing import curate_qsar_data
+
+cleaned_df, stats = curate_qsar_data(
+    df,
+    smiles_col="SMILES",
+    activity_col="IC50_nM",
+    unit="nM",
+    remove_outliers=True,
+    report_path="curation_report.md"
+)
 ```
 
 ### 3. Model Selection Module
