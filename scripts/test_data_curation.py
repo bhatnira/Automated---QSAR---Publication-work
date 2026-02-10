@@ -306,9 +306,13 @@ def test_with_kinase_dataset():
     print("="*60)
     
     from automl_qsar.preprocessing import QSARDataCurationAgent
+    import os
     
-    # Load kinase dataset
-    df = pd.read_csv('kinase_ic50_dataset.csv')
+    # Load kinase dataset (handle path from different working directories)
+    data_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'sample', 'kinase_ic50_dataset.csv')
+    if not os.path.exists(data_path):
+        data_path = 'data/sample/kinase_ic50_dataset.csv'
+    df = pd.read_csv(data_path)
     print(f"Loaded: {len(df)} compounds")
     
     agent = QSARDataCurationAgent(

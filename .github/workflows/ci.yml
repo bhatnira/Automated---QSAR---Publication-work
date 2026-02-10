@@ -115,7 +115,7 @@ jobs:
         run: pytest tests/integration/ -v --tb=short
         
       - name: Run data curation tests
-        run: python test_data_curation.py
+        run: python scripts/test_data_curation.py
 
   # ============================================================
   # Scenario Tests - Different QSAR Tasks
@@ -179,10 +179,10 @@ jobs:
           pip install -e . || pip install .
           
       - name: Run full pipeline test
-        run: python test_quick.py
+        run: python scripts/test_quick.py
         
       - name: Run IC50 dataset test
-        run: python test_ic50_dataset.py
+        run: python scripts/test_ic50_dataset.py
 
   # ============================================================
   # Build & Package

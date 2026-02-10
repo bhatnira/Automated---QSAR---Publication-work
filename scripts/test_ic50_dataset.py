@@ -90,8 +90,10 @@ print(f"  Moderately active (100-1000 nM): {((df['IC50_nM'] >= 100) & (df['IC50_
 print(f"  Weak/Inactive (> 1000 nM): {(df['IC50_nM'] >= 1000).sum()}")
 
 # Save dataset
-df.to_csv('kinase_ic50_dataset.csv', index=False)
-print(f"✓ Saved to kinase_ic50_dataset.csv")
+import os
+output_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'data', 'sample', 'kinase_ic50_dataset.csv')
+df.to_csv(output_path, index=False)
+print(f"✓ Saved to {output_path}")
 
 # Display some examples
 print("\nSample compounds:")
