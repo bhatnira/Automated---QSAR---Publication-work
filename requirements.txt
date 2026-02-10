@@ -1,46 +1,27 @@
 # Core dependencies
-numpy>=1.21.0
+numpy>=1.21.0,<2.0.0
 pandas>=1.3.0
 scikit-learn>=1.0.0
 scipy>=1.7.0
 
 # Chemistry and molecular featurization
 rdkit>=2022.03.1
-mordred>=1.2.0
-
-# Deep learning
-torch>=2.0.0
-torch-geometric>=2.3.0
-torch-scatter>=2.1.0
-torch-sparse>=0.6.0
 
 # Hyperparameter optimization
 optuna>=3.0.0
-hyperopt>=0.2.7
-DEAP>=1.3.3
-
-# Feature selection and preprocessing
-boruta>=0.3
-shap>=0.41.0
-lime>=0.2.0.1
 
 # Visualization and reporting
 matplotlib>=3.4.0
 seaborn>=0.11.0
-plotly>=5.0.0
+
+# Testing
+pytest>=7.0.0
+pytest-cov>=4.0.0
+
+# XGBoost
+xgboost>=1.6.0
 
 # Utilities
 tqdm>=4.62.0
 joblib>=1.1.0
 pyyaml>=6.0
-python-dotenv>=0.19.0
-
-# Testing
-pytest>=7.0.0
-pytest-cov>=4.0.0
-pytest-xdist>=3.0.0
-flake8>=5.0.0
-
-# Code quality (optional)
-black>=22.0.0
-isort>=5.10.0
