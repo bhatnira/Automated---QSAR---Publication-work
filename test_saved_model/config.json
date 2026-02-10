@@ -1,0 +1,201 @@
+{
+  "featurizers": [
+    "rdkit",
+    "ecfp"
+  ],
+  "models": [
+    "ridge",
+    "randomforest",
+    "xgboost"
+  ],
+  "optimization_method": "bayesian",
+  "n_trials": 5,
+  "cv_folds": 3,
+  "best_params": {
+    "alpha": 4.49627326002473
+  },
+  "results": {
+    "validation": {
+      "smiles": {
+        "total": 40,
+        "valid": "37",
+        "invalid": 3,
+        "invalid_indices": [
+          22,
+          30,
+          32
+        ]
+      },
+      "duplicates": {
+        "n_duplicates": "0",
+        "duplicate_indices": []
+      },
+      "outliers": {
+        "method": "iqr",
+        "threshold": 1.5,
+        "n_outliers": "0",
+        "outlier_indices": [],
+        "outlier_values": []
+      },
+      "noise": {
+        "method": "residual",
+        "threshold": 2.5,
+        "n_noisy": "4",
+        "noisy_indices": [
+          0,
+          2,
+          3,
+          24
+        ],
+        "noise_scores": [
+          4.572438789221068,
+          2.7209787978729363,
+          2.9161948583057895,
+          3.0667638983054637
+        ]
+      }
+    },
+    "features": {
+      "best_configuration": {
+        "featurizer": "rdkit",
+        "n_features": 22,
+        "preprocessing": "standard",
+        "rmse": 0.5690587479235856,
+        "rmse_std": 0.12702486301277255
+      },
+      "all_results": [
+        {
+          "featurizer": "rdkit",
+          "n_features": 22,
+          "preprocessing": "standard",
+          "rmse": 0.5690587479235856,
+          "rmse_std": 0.12702486301277255
+        },
+        {
+          "featurizer": "rdkit",
+          "n_features": 22,
+          "preprocessing": "robust",
+          "rmse": 0.5758717137314747,
+          "rmse_std": 0.12407730890173518
+        },
+        {
+          "featurizer": "rdkit",
+          "n_features": 22,
+          "preprocessing": "minmax",
+          "rmse": 0.5786731901673825,
+          "rmse_std": 0.12181922072822332
+        },
+        {
+          "featurizer": "ecfp",
+          "n_features": 2048,
+          "preprocessing": "robust",
+          "rmse": 0.7922643070630122,
+          "rmse_std": 0.2745640285799049
+        },
+        {
+          "featurizer": "ecfp",
+          "n_features": 2048,
+          "preprocessing": "minmax",
+          "rmse": 0.7922643070630125,
+          "rmse_std": 0.27456402857990486
+        },
+        {
+          "featurizer": "ecfp",
+          "n_features": 2048,
+          "preprocessing": "standard",
+          "rmse": 0.7922643070630127,
+          "rmse_std": 0.27456402857990536
+        }
+      ]
+    },
+    "models": {
+      "best_model": {
+        "model": "ridge",
+        "family": "linear",
+        "rmse": 0.5688097083904166,
+        "rmse_std": 0.09712162901608497,
+        "r2": 0.7213252427738925
+      },
+      "all_results": [
+        {
+          "model": "ridge",
+          "family": "linear",
+          "rmse": 0.5688097083904166,
+          "rmse_std": 0.09712162901608497,
+          "r2": 0.7213252427738925
+        },
+        {
+          "model": "randomforest",
+          "family": "tree",
+          "rmse": 0.5795037676491546,
+          "rmse_std": 0.11311985223576725,
+          "r2": 0.7107481411088471
+        },
+        {
+          "model": "xgboost",
+          "family": "tree",
+          "rmse": 0.7240629773310666,
+          "rmse_std": 0.19462918172204488,
+          "r2": 0.5484391161325398
+        }
+      ]
+    },
+    "hpo": {
+      "best_params": {
+        "alpha": 4.49627326002473
+      },
+      "best_score": 0.5380963968624076,
+      "n_trials": 5,
+      "history": [
+        {
+          "trial": 0,
+          "value": 0.8276535595460257,
+          "params": {
+            "alpha": 0.004452497292269517
+          }
+        },
+        {
+          "trial": 1,
+          "value": 0.7941718271422525,
+          "params": {
+            "alpha": 0.007619760355219382
+          }
+        },
+        {
+          "trial": 2,
+          "value": 0.8244665497189643,
+          "params": {
+            "alpha": 0.004667302013984411
+          }
+        },
+        {
+          "trial": 3,
+          "value": 0.5495541812438602,
+          "params": {
+            "alpha": 2.212432513564577
+          }
+        },
+        {
+          "trial": 4,
+          "value": 0.5380963968624076,
+          "params": {
+            "alpha": 4.49627326002473
+          }
+        }
+      ]
+    },
+    "final_metrics": {
+      "rmse": 0.5515252793424539,
+      "mae": 0.42715292154832707,
+      "r2": 0.7380041106411483,
+      "q2": 0.7380041106411483
+    },
+    "summary": {
+      "n_samples": 37,
+      "n_features": 22,
+      "best_model": "ridge",
+      "best_rmse": 0.5515252793424539,
+      "best_r2": 0.7380041106411483
+    }
+  }
+}
