@@ -1,6 +1,14 @@
 #!/usr/bin/env python
 """
-Test for QSAR Data Curation Agent
+Test for QSAR Data Curation Agent - Multi-Task Support
+
+Tests:
+1. Single-target regression (IC50)
+2. Multi-target regression (multiple endpoints)
+3. Binary classification (Active/Inactive)
+4. Multiclass classification (High/Medium/Low)
+5. Mixed tasks (regression + classification)
+6. String label handling
 """
 
 import sys
@@ -14,155 +22,407 @@ warnings.filterwarnings('ignore')
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 
-def test_data_curation_agent():
-    """Test the QSARDataCurationAgent with sample data."""
+def test_single_target_regression():
+    """Test single-target regression (IC50 values)."""
     print("\n" + "="*60)
-    print("Testing QSAR Data Curation Agent")
+    print("Test 1: Single-Target Regression")
     print("="*60)
     
-    from automl_qsar.preprocessing import QSARDataCurationAgent, curate_qsar_data
+    from automl_qsar.preprocessing import QSARDataCurationAgent
     
-    # Create sample dataset with various issues
+    # Create sample IC50 dataset
     data = {
         'SMILES': [
-            'CCO',                           # Ethanol - valid
-            'c1ccccc1',                       # Benzene - valid
-            'CC(=O)OC1=CC=CC=C1C(=O)O',       # Aspirin - valid
-            'INVALID_SMILES',                 # Invalid
-            'CCO',                            # Duplicate
-            'CC(C)CC1=CC=C(C=C1)C(C)C(=O)O',  # Ibuprofen - valid
-            'CN1C=NC2=C1C(=O)N(C(=O)N2C)C',   # Caffeine - valid
-            '',                               # Empty
-            'C1=CC=CC=C1O',                   # Phenol - valid
-            'CC(C)C',                         # Isobutane - valid
+            'CCO', 'c1ccccc1', 'CC(=O)OC1=CC=CC=C1C(=O)O',
+            'CC(C)CC1=CC=C(C=C1)C(C)C(=O)O', 'CN1C=NC2=C1C(=O)N(C(=O)N2C)C',
+            'CC(C)C', 'CCCC', 'c1ccc2ccccc2c1'
         ],
-        'IC50': [
-            '100',        # Normal value
-            '>10000',     # Right censored
-            '<1',         # Left censored
-            '50',         # Will be removed (invalid SMILES)
-            '150',        # Duplicate
-            '~500',       # Approximate
-            '25.5',       # Decimal
-            '100',        # Empty SMILES
-            'invalid',    # Invalid activity
-            '1000',       # Normal
-        ]
+        'IC50_nM': [100, 1000, 50, 500, 25, 10000, 5000, 200]
     }
     
     df = pd.DataFrame(data)
-    print(f"\nInput data: {len(df)} rows")
-    print(df.to_string())
-    
-    # Test the agent
-    print("\n" + "-"*40)
-    print("Running curation pipeline...")
-    print("-"*40)
+    print(f"Input: {len(df)} compounds with IC50 values")
     
     agent = QSARDataCurationAgent(
         df=df,
         smiles_col='SMILES',
-        activity_col='IC50',
-        unit='nM',
+        target_cols='IC50_nM',
+        units='nM',
         verbose=True
     )
     
     cleaned_df = agent.run()
     
-    print("\n" + "-"*40)
-    print("Cleaned data:")
-    print("-"*40)
-    print(cleaned_df.to_string())
-    
-    # Check results
-    print("\n" + "-"*40)
-    print("Validation:")
-    print("-"*40)
+    print(f"\nResult:")
+    print(cleaned_df.head())
     
     stats = agent.get_statistics()
-    print(f"  Invalid SMILES removed: {stats['n_invalid_smiles']}")
-    print(f"  Duplicates removed: {stats['n_duplicates']}")
-    print(f"  Invalid activities: {stats['n_invalid_activity']}")
-    print(f"  Task type: {stats['task_type']}")
-    print(f"  Transform: {stats['transform']}")
-    print(f"  Final size: {len(cleaned_df)}")
+    print(f"\nOverall task: {stats['overall_task']}")
     
-    # Generate reports
-    agent.generate_report("test_curation_report.txt")
-    agent.generate_markdown_report("test_curation_report.md")
-    print(f"\n  Reports generated: test_curation_report.txt, test_curation_report.md")
+    config = agent.get_target_configs()['IC50_nM']
+    print(f"Transform applied: {config.transform}")
     
-    # Test convenience function
-    print("\n" + "-"*40)
-    print("Testing convenience function...")
-    print("-"*40)
+    assert stats['overall_task'] == 'regression_single'
+    print("\n✓ Single-target regression test passed!")
+    return True
+
+
+def test_multi_target_regression():
+    """Test multi-target regression (multiple IC50 endpoints)."""
+    print("\n" + "="*60)
+    print("Test 2: Multi-Target Regression")
+    print("="*60)
     
-    df2 = pd.DataFrame({
-        'smiles': ['CCO', 'c1ccccc1', 'CCCC'],
-        'activity': [100, 1000, 50]
-    })
+    from automl_qsar.preprocessing import QSARDataCurationAgent
     
-    clean_df2, stats2 = curate_qsar_data(
-        df2, 
-        smiles_col='smiles', 
-        activity_col='activity',
-        unit='nM',
-        verbose=False
+    # Create multi-target dataset
+    data = {
+        'SMILES': [
+            'CCO', 'c1ccccc1', 'CC(=O)OC1=CC=CC=C1C(=O)O',
+            'CC(C)CC1=CC=C(C=C1)C(C)C(=O)O', 'CN1C=NC2=C1C(=O)N(C(=O)N2C)C',
+        ],
+        'IC50_TargetA': [100, 1000, 50, 500, 25],
+        'IC50_TargetB': [200, 500, 100, 1000, 50],
+        'Ki_TargetC': [50, 200, 25, 250, 10]
+    }
+    
+    df = pd.DataFrame(data)
+    print(f"Input: {len(df)} compounds with 3 targets")
+    
+    agent = QSARDataCurationAgent(
+        df=df,
+        smiles_col='SMILES',
+        target_cols=['IC50_TargetA', 'IC50_TargetB', 'Ki_TargetC'],
+        units={'IC50_TargetA': 'nM', 'IC50_TargetB': 'nM', 'Ki_TargetC': 'nM'},
+        verbose=True
     )
     
-    print(f"  Curated {len(clean_df2)} molecules")
-    print(f"  Transform: {stats2.get('transform', 'N/A')}")
+    cleaned_df = agent.run()
     
-    print("\n✓ QSAR Data Curation Agent test completed!")
+    print(f"\nResult:")
+    print(cleaned_df.head())
+    
+    stats = agent.get_statistics()
+    print(f"\nOverall task: {stats['overall_task']}")
+    
+    assert stats['overall_task'] == 'regression_multi'
+    print("\n✓ Multi-target regression test passed!")
+    return True
+
+
+def test_binary_classification():
+    """Test binary classification with string labels."""
+    print("\n" + "="*60)
+    print("Test 3: Binary Classification (String Labels)")
+    print("="*60)
+    
+    from automl_qsar.preprocessing import QSARDataCurationAgent
+    
+    # Create binary classification dataset
+    data = {
+        'SMILES': [
+            'CCO', 'c1ccccc1', 'CC(=O)OC1=CC=CC=C1C(=O)O',
+            'CC(C)CC1=CC=C(C=C1)C(C)C(=O)O', 'CN1C=NC2=C1C(=O)N(C(=O)N2C)C',
+            'CC(C)C', 'CCCC', 'c1ccc2ccccc2c1'
+        ],
+        'Activity': ['Active', 'Inactive', 'Active', 'Active', 
+                     'Inactive', 'Inactive', 'Active', 'Inactive']
+    }
+    
+    df = pd.DataFrame(data)
+    print(f"Input: {len(df)} compounds with Activity labels")
+    
+    agent = QSARDataCurationAgent(
+        df=df,
+        smiles_col='SMILES',
+        target_cols='Activity',
+        units=None,
+        verbose=True
+    )
+    
+    cleaned_df = agent.run()
+    
+    print(f"\nResult:")
+    print(cleaned_df.head())
+    
+    stats = agent.get_statistics()
+    print(f"\nOverall task: {stats['overall_task']}")
+    
+    config = agent.get_target_configs()['Activity']
+    print(f"Classes: {config.classes}")
+    print(f"Transform: {config.transform}")
+    
+    # Get label encoder
+    encoders = agent.get_label_encoders()
+    if 'Activity' in encoders:
+        print(f"Label encoder classes: {list(encoders['Activity'].classes_)}")
+    
+    assert stats['overall_task'] == 'classification_binary'
+    print("\n✓ Binary classification test passed!")
+    return True
+
+
+def test_multiclass_classification():
+    """Test multiclass classification with string labels."""
+    print("\n" + "="*60)
+    print("Test 4: Multiclass Classification")
+    print("="*60)
+    
+    from automl_qsar.preprocessing import QSARDataCurationAgent
+    
+    # Create multiclass dataset
+    data = {
+        'SMILES': [
+            'CCO', 'c1ccccc1', 'CC(=O)OC1=CC=CC=C1C(=O)O',
+            'CC(C)CC1=CC=C(C=C1)C(C)C(=O)O', 'CN1C=NC2=C1C(=O)N(C(=O)N2C)C',
+            'CC(C)C', 'CCCC', 'c1ccc2ccccc2c1', 'CCN', 'CCOCC'
+        ],
+        'Potency': ['High', 'Low', 'High', 'Medium', 'High',
+                    'Low', 'Medium', 'Medium', 'Low', 'High']
+    }
+    
+    df = pd.DataFrame(data)
+    print(f"Input: {len(df)} compounds with Potency labels")
+    
+    agent = QSARDataCurationAgent(
+        df=df,
+        smiles_col='SMILES',
+        target_cols='Potency',
+        units=None,
+        verbose=True
+    )
+    
+    cleaned_df = agent.run()
+    
+    print(f"\nResult:")
+    print(cleaned_df.head())
+    
+    stats = agent.get_statistics()
+    print(f"\nOverall task: {stats['overall_task']}")
+    
+    config = agent.get_target_configs()['Potency']
+    print(f"Classes: {config.classes}")
+    print(f"Class counts: {config.statistics.get('class_counts', {})}")
+    
+    assert stats['overall_task'] == 'classification_multiclass'
+    print("\n✓ Multiclass classification test passed!")
+    return True
+
+
+def test_mixed_tasks():
+    """Test mixed regression and classification tasks."""
+    print("\n" + "="*60)
+    print("Test 5: Mixed Tasks (Regression + Classification)")
+    print("="*60)
+    
+    from automl_qsar.preprocessing import QSARDataCurationAgent
+    
+    # Create mixed task dataset
+    data = {
+        'SMILES': [
+            'CCO', 'c1ccccc1', 'CC(=O)OC1=CC=CC=C1C(=O)O',
+            'CC(C)CC1=CC=C(C=C1)C(C)C(=O)O', 'CN1C=NC2=C1C(=O)N(C(=O)N2C)C',
+        ],
+        'IC50_nM': [100, 1000, 50, 500, 25],  # Regression
+        'Toxicity': ['Toxic', 'Non-toxic', 'Non-toxic', 'Toxic', 'Non-toxic'],  # Binary
+        'Selectivity': ['High', 'Low', 'Medium', 'High', 'Medium']  # Multiclass
+    }
+    
+    df = pd.DataFrame(data)
+    print(f"Input: {len(df)} compounds with mixed targets")
+    
+    agent = QSARDataCurationAgent(
+        df=df,
+        smiles_col='SMILES',
+        target_cols=['IC50_nM', 'Toxicity', 'Selectivity'],
+        units={'IC50_nM': 'nM', 'Toxicity': None, 'Selectivity': None},
+        verbose=True
+    )
+    
+    cleaned_df = agent.run()
+    
+    print(f"\nResult:")
+    print(cleaned_df)
+    
+    stats = agent.get_statistics()
+    print(f"\nOverall task: {stats['overall_task']}")
+    
+    # Check each target type
+    configs = agent.get_target_configs()
+    for name, config in configs.items():
+        print(f"  {name}: {config.task_type.value}")
+    
+    assert stats['overall_task'] == 'mixed'
+    print("\n✓ Mixed tasks test passed!")
+    return True
+
+
+def test_multi_target_classification():
+    """Test multi-target classification (multiple label columns)."""
+    print("\n" + "="*60)
+    print("Test 6: Multi-Target Classification")
+    print("="*60)
+    
+    from automl_qsar.preprocessing import QSARDataCurationAgent
+    
+    # Create multi-label classification dataset
+    data = {
+        'SMILES': [
+            'CCO', 'c1ccccc1', 'CC(=O)OC1=CC=CC=C1C(=O)O',
+            'CC(C)CC1=CC=C(C=C1)C(C)C(=O)O', 'CN1C=NC2=C1C(=O)N(C(=O)N2C)C',
+        ],
+        'Target_A': ['Active', 'Inactive', 'Active', 'Inactive', 'Active'],
+        'Target_B': ['Positive', 'Negative', 'Positive', 'Positive', 'Negative'],
+    }
+    
+    df = pd.DataFrame(data)
+    print(f"Input: {len(df)} compounds with 2 classification targets")
+    
+    agent = QSARDataCurationAgent(
+        df=df,
+        smiles_col='SMILES',
+        target_cols=['Target_A', 'Target_B'],
+        units=None,
+        verbose=True
+    )
+    
+    cleaned_df = agent.run()
+    
+    print(f"\nResult:")
+    print(cleaned_df)
+    
+    stats = agent.get_statistics()
+    print(f"\nOverall task: {stats['overall_task']}")
+    
+    assert stats['overall_task'] == 'classification_multilabel'
+    print("\n✓ Multi-target classification test passed!")
     return True
 
 
 def test_with_kinase_dataset():
-    """Test with the kinase IC50 dataset."""
+    """Test with the real kinase IC50 dataset."""
     print("\n" + "="*60)
-    print("Testing with Kinase IC50 Dataset")
+    print("Test 7: Real Kinase IC50 Dataset")
     print("="*60)
     
     from automl_qsar.preprocessing import QSARDataCurationAgent
     
     # Load kinase dataset
     df = pd.read_csv('kinase_ic50_dataset.csv')
-    print(f"\nLoaded: {len(df)} compounds")
+    print(f"Loaded: {len(df)} compounds")
     
     agent = QSARDataCurationAgent(
         df=df,
         smiles_col='SMILES',
-        activity_col='IC50_nM',
-        unit='nM',
+        target_cols='IC50_nM',
+        units='nM',
         verbose=True
     )
     
     cleaned_df = agent.run()
     
     stats = agent.get_statistics()
+    config = agent.get_target_configs()['IC50_nM']
     
-    print("\n" + "-"*40)
-    print("Results Summary:")
-    print("-"*40)
+    print(f"\nResults:")
     print(f"  Original: {len(df)} compounds")
     print(f"  Cleaned: {len(cleaned_df)} compounds")
-    print(f"  Transform: {stats.get('transform', 'N/A')}")
+    print(f"  Task: {stats['overall_task']}")
+    print(f"  Transform: {config.transform}")
     
-    if 'target_stats' in stats:
-        ts = stats['target_stats']
-        print(f"  Target range: {ts['min']:.2f} - {ts['max']:.2f}")
-        print(f"  Target mean: {ts['mean']:.2f} ± {ts['std']:.2f}")
+    if 'mean' in config.statistics:
+        print(f"  pIC50 range: {config.statistics['min']:.2f} - {config.statistics['max']:.2f}")
     
-    print("\n✓ Kinase dataset test completed!")
+    print("\n✓ Kinase dataset test passed!")
+    return True
+
+
+def test_convenience_function():
+    """Test the curate_qsar_data convenience function."""
+    print("\n" + "="*60)
+    print("Test 8: Convenience Function")
+    print("="*60)
+    
+    from automl_qsar.preprocessing import curate_qsar_data
+    
+    # Simple usage
+    data = {
+        'SMILES': ['CCO', 'c1ccccc1', 'CCCC', 'CC(C)C'],
+        'IC50': [100, 1000, 500, 50]
+    }
+    df = pd.DataFrame(data)
+    
+    # Single target
+    clean_df, stats = curate_qsar_data(
+        df, 'SMILES', 'IC50', units='nM', verbose=False
+    )
+    print(f"Single target: {len(clean_df)} molecules, task={stats['overall_task']}")
+    
+    # Multi-target
+    data2 = {
+        'SMILES': ['CCO', 'c1ccccc1', 'CCCC'],
+        'IC50_A': [100, 1000, 500],
+        'IC50_B': [200, 500, 250]
+    }
+    df2 = pd.DataFrame(data2)
+    
+    clean_df2, stats2 = curate_qsar_data(
+        df2, 'SMILES', ['IC50_A', 'IC50_B'], units='nM', verbose=False
+    )
+    print(f"Multi target: {len(clean_df2)} molecules, task={stats2['overall_task']}")
+    
+    # Classification
+    data3 = {
+        'SMILES': ['CCO', 'c1ccccc1', 'CCCC'],
+        'Activity': ['Active', 'Inactive', 'Active']
+    }
+    df3 = pd.DataFrame(data3)
+    
+    clean_df3, stats3 = curate_qsar_data(
+        df3, 'SMILES', 'Activity', units=None, verbose=False
+    )
+    print(f"Classification: {len(clean_df3)} molecules, task={stats3['overall_task']}")
+    
+    print("\n✓ Convenience function test passed!")
     return True
 
 
 if __name__ == "__main__":
-    success1 = test_data_curation_agent()
-    success2 = test_with_kinase_dataset()
+    tests = [
+        ("Single-target Regression", test_single_target_regression),
+        ("Multi-target Regression", test_multi_target_regression),
+        ("Binary Classification", test_binary_classification),
+        ("Multiclass Classification", test_multiclass_classification),
+        ("Mixed Tasks", test_mixed_tasks),
+        ("Multi-target Classification", test_multi_target_classification),
+        ("Kinase Dataset", test_with_kinase_dataset),
+        ("Convenience Function", test_convenience_function),
+    ]
+    
+    results = []
+    for name, test_fn in tests:
+        try:
+            success = test_fn()
+            results.append((name, success))
+        except Exception as e:
+            print(f"\n❌ {name} failed: {e}")
+            import traceback
+            traceback.print_exc()
+            results.append((name, False))
     
     print("\n" + "="*60)
-    if success1 and success2:
+    print("SUMMARY")
+    print("="*60)
+    
+    all_passed = True
+    for name, success in results:
+        status = "✓" if success else "❌"
+        print(f"  {status} {name}")
+        if not success:
+            all_passed = False
+    
+    print("\n" + "="*60)
+    if all_passed:
         print("🎉 All data curation tests passed!")
     else:
         print("⚠️ Some tests failed")
