@@ -571,39 +571,516 @@ Mixed & IC50 + Toxicity & Combination & Auto-detect per column \\
 
 \subsection{Available Models}
 
+The AutoML QSAR pipeline includes 12 different machine learning models spanning 5 categories.
+
 \begin{table}[H]
 \centering
-\caption{Available Machine Learning Models}
-\begin{tabular}{@{}llp{6cm}@{}}
+\caption{Complete Model Inventory}
+\begin{tabular}{@{}llp{7cm}@{}}
 \toprule
 \textbf{Category} & \textbf{Model} & \textbf{Description} \\
 \midrule
-\multirow{3}{*}{Linear} & Ridge & L2 regularized linear regression \\
+\multirow{4}{*}{Linear} & LinearRegression & Standard OLS regression (baseline) \\
+ & Ridge & L2 regularized linear regression \\
  & Lasso & L1 regularized (sparse features) \\
- & ElasticNet & L1+L2 regularization \\
+ & ElasticNet & L1+L2 regularization (best of both) \\
 \midrule
-\multirow{3}{*}{Tree-based} & RandomForest & Ensemble of decision trees \\
- & GradientBoosting & Sequential boosting \\
- & XGBoost & Optimized gradient boosting \\
+\multirow{3}{*}{Tree-based} & RandomForest & Ensemble of decision trees with bagging \\
+ & GradientBoosting & Sequential boosting (sklearn) \\
+ & XGBoost & Optimized gradient boosting with regularization \\
 \midrule
-\multirow{2}{*}{Kernel} & SVR & Support Vector Regression \\
+\multirow{2}{*}{Kernel} & SVR & Support Vector Regression (RBF kernel) \\
  & KernelRidge & Kernel Ridge Regression \\
+\midrule
+\multirow{2}{*}{Neural} & FeedForwardNN & MLP with configurable hidden layers \\
+ & DeepNN & Deep neural network (PyTorch backend) \\
+\midrule
+Graph & GraphNeuralNetwork & GCN/GAT for molecular graphs \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection{Model UML Class Diagram}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    class/.style={rectangle, draw, minimum width=4.5cm, font=\small},
+    classname/.style={rectangle, draw, fill=classcolor, minimum width=4.5cm, font=\bfseries\small},
+    abstract/.style={rectangle, draw, fill=interfacecolor, minimum width=4.5cm, font=\small},
+    abstractname/.style={rectangle, draw, fill=interfacecolor!70, minimum width=4.5cm, font=\bfseries\itshape\small},
+    arrow/.style={->, >=open triangle 60, thick},
+    node distance=0.1cm
+]
+
+    % BaseModel (Abstract)
+    \node[abstractname] (basename) {\guillemotleft abstract\guillemotright\\BaseModel};
+    \node[abstract, below=0cm of basename] (baseattr) {
+        \begin{tabular}{l}
+        + name: str\\
+        + model: sklearn.BaseEstimator\\
+        \hline
+        + fit(X, y) $\rightarrow$ self\\
+        + predict(X) $\rightarrow$ ndarray\\
+        + get\_params() $\rightarrow$ Dict
+        \end{tabular}
+    };
+    
+    % Linear models
+    \node[classname, below=1.5cm of baseattr, xshift=-5cm] (ridgename) {Ridge};
+    \node[class, below=0cm of ridgename, minimum width=3.5cm] (ridgeattr) {
+        \begin{tabular}{l}
+        + alpha: float\\
+        + solver: str
+        \end{tabular}
+    };
+    
+    % Tree models
+    \node[classname, below=1.5cm of baseattr, xshift=-1.5cm] (rfname) {RandomForest};
+    \node[class, below=0cm of rfname, minimum width=3.5cm] (rfattr) {
+        \begin{tabular}{l}
+        + n\_estimators: int\\
+        + max\_depth: int\\
+        + min\_samples\_split: int
+        \end{tabular}
+    };
+    
+    % XGBoost
+    \node[classname, below=1.5cm of baseattr, xshift=2cm] (xgbname) {XGBoost};
+    \node[class, below=0cm of xgbname, minimum width=3.5cm] (xgbattr) {
+        \begin{tabular}{l}
+        + n\_estimators: int\\
+        + learning\_rate: float\\
+        + max\_depth: int\\
+        + reg\_alpha: float\\
+        + reg\_lambda: float
+        \end{tabular}
+    };
+    
+    % Neural models
+    \node[classname, below=1.5cm of baseattr, xshift=5.5cm] (nnname) {FeedForwardNN};
+    \node[class, below=0cm of nnname, minimum width=3.5cm] (nnattr) {
+        \begin{tabular}{l}
+        + hidden\_layers: List[int]\\
+        + activation: str\\
+        + learning\_rate: float\\
+        + max\_iter: int
+        \end{tabular}
+    };
+    
+    % Inheritance arrows
+    \draw[arrow] (ridgename.north) -- ++(0,0.4) -| (baseattr.south);
+    \draw[arrow] (rfname.north) -- ++(0,0.4) -| (baseattr.south);
+    \draw[arrow] (xgbname.north) -- ++(0,0.4) -| (baseattr.south);
+    \draw[arrow] (nnname.north) -- ++(0,0.4) -| (baseattr.south);
+    
+\end{tikzpicture}
+\caption{Model Hierarchy Class Diagram}
+\end{figure}
+
+\subsubsection{Neural Network Architecture}
+
+\begin{table}[H]
+\centering
+\caption{Neural Network Model Configurations}
+\begin{tabular}{@{}llp{6cm}@{}}
+\toprule
+\textbf{Model} & \textbf{Architecture} & \textbf{Hyperparameters} \\
+\midrule
+FeedForwardNN & Input $\rightarrow$ [100, 50] $\rightarrow$ Output & 
+\begin{tabular}[t]{@{}l@{}}
+hidden\_layers: [100, 50]\\
+activation: relu, tanh, sigmoid\\
+learning\_rate: 0.001\\
+max\_iter: 200\\
+early\_stopping: True
+\end{tabular} \\
+\midrule
+DeepNN & Input $\rightarrow$ [256, 128, 64] $\rightarrow$ Output & 
+\begin{tabular}[t]{@{}l@{}}
+hidden\_layers: [256, 128, 64]\\
+dropout: 0.2\\
+learning\_rate: 0.001\\
+epochs: 100\\
+batch\_size: 32\\
+GPU support: Auto-detect
+\end{tabular} \\
+\midrule
+GraphNeuralNetwork & Atoms $\rightarrow$ GCN Layers $\rightarrow$ Pool $\rightarrow$ Output & 
+\begin{tabular}[t]{@{}l@{}}
+hidden\_channels: 64\\
+num\_layers: 3\\
+dropout: 0.2\\
+pooling: global\_mean\_pool
+\end{tabular} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection{Model Hyperparameter Spaces}
+
+\begin{table}[H]
+\centering
+\caption{Hyperparameter Search Spaces for Bayesian Optimization}
+\begin{tabular}{@{}llll@{}}
+\toprule
+\textbf{Model} & \textbf{Parameter} & \textbf{Type} & \textbf{Range} \\
+\midrule
+\multirow{2}{*}{Ridge} & alpha & log-uniform & [1e-4, 1e2] \\
+ & solver & categorical & [auto, svd, cholesky] \\
+\midrule
+\multirow{3}{*}{RandomForest} & n\_estimators & int & [50, 500] \\
+ & max\_depth & int & [3, 20] \\
+ & min\_samples\_split & int & [2, 20] \\
+\midrule
+\multirow{4}{*}{XGBoost} & n\_estimators & int & [50, 500] \\
+ & learning\_rate & log-uniform & [0.01, 0.3] \\
+ & max\_depth & int & [3, 12] \\
+ & reg\_lambda & log-uniform & [1e-3, 10] \\
+\midrule
+\multirow{3}{*}{SVR} & C & log-uniform & [0.1, 100] \\
+ & epsilon & uniform & [0.01, 0.5] \\
+ & gamma & categorical & [scale, auto] \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \subsection{Featurization Methods}
 
+The pipeline supports 7 distinct molecular featurization methods across 4 categories.
+
 \begin{table}[H]
 \centering
-\caption{Molecular Featurization Methods}
-\begin{tabular}{@{}lclp{5cm}@{}}
+\caption{Complete Featurization Inventory}
+\begin{tabular}{@{}lclp{5.5cm}@{}}
 \toprule
-\textbf{Method} & \textbf{Dimensions} & \textbf{Type} & \textbf{Description} \\
+\textbf{Method} & \textbf{Dims} & \textbf{Type} & \textbf{Description} \\
 \midrule
-RDKit Descriptors & 200+ & Continuous & Molecular properties (LogP, MW, TPSA, etc.) \\
-ECFP Fingerprints & 1024 & Binary & Circular substructure patterns \\
-MACCS Keys & 167 & Binary & Predefined structural keys \\
+RDKit Descriptors & 200+ & Float & Physicochemical properties \\
+ECFP Fingerprints & 1024 & Binary & Circular substructures (Morgan) \\
+MACCS Keys & 167 & Binary & MDL public structure keys \\
+Pharmacophore & 28+ & Float & H-bond donors/acceptors, aromatics \\
+Mol2Vec Embeddings & 300 & Float & Pre-trained molecular vectors \\
+Graph Features & 44+6 & Mixed & Node \& edge features for GNN \\
+Random Embeddings & 128 & Float & Placeholder for custom models \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection{Featurization UML Class Diagram}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    class/.style={rectangle, draw, minimum width=4cm, font=\small},
+    classname/.style={rectangle, draw, fill=classcolor, minimum width=4cm, font=\bfseries\small},
+    abstract/.style={rectangle, draw, fill=interfacecolor, minimum width=5cm, font=\small},
+    abstractname/.style={rectangle, draw, fill=interfacecolor!70, minimum width=5cm, font=\bfseries\itshape\small},
+    arrow/.style={->, >=open triangle 60, thick},
+    node distance=0.1cm
+]
+
+    % BaseFeaturizer (Abstract)
+    \node[abstractname] (basename) {\guillemotleft abstract\guillemotright\\BaseFeaturizer};
+    \node[abstract, below=0cm of basename] (baseattr) {
+        \begin{tabular}{l}
+        + name: str\\
+        + feature\_names: List[str]\\
+        \hline
+        + featurize(molecules) $\rightarrow$ ndarray\\
+        \# \_smiles\_to\_mol(smiles) $\rightarrow$ Mol\\
+        \# \_prepare\_molecules(mols) $\rightarrow$ List
+        \end{tabular}
+    };
+    
+    % Row 1: Traditional descriptors
+    \node[classname, below=1.8cm of baseattr, xshift=-5cm] (rdkitname) {RDKitDescriptors};
+    \node[class, below=0cm of rdkitname] (rdkitattr) {
+        \begin{tabular}{l}
+        + descriptors: 200+\\
+        + includes: LogP, MW,\\
+        \hspace{2mm}TPSA, HBA, HBD
+        \end{tabular}
+    };
+    
+    \node[classname, below=1.8cm of baseattr, xshift=-1cm] (ecfpname) {ECFPFingerprints};
+    \node[class, below=0cm of ecfpname] (ecfpattr) {
+        \begin{tabular}{l}
+        + radius: 2 (ECFP4)\\
+        + n\_bits: 1024\\
+        + use\_features: bool
+        \end{tabular}
+    };
+    
+    \node[classname, below=1.8cm of baseattr, xshift=3cm] (maccsname) {MACCSFingerprints};
+    \node[class, below=0cm of maccsname] (maccsattr) {
+        \begin{tabular}{l}
+        + n\_bits: 167\\
+        + predefined keys
+        \end{tabular}
+    };
+    
+    % Row 2: Advanced features
+    \node[classname, below=3.8cm of baseattr, xshift=-5cm] (pharmname) {PharmacophoreFeatures};
+    \node[class, below=0cm of pharmname] (pharmattr) {
+        \begin{tabular}{l}
+        + Donor, Acceptor\\
+        + PosIonizable, NegIonizable\\
+        + Aromatic, Hydrophobe
+        \end{tabular}
+    };
+    
+    \node[classname, below=3.8cm of baseattr, xshift=-0.5cm] (graphname) {GraphFeaturizer};
+    \node[class, below=0cm of graphname] (graphattr) {
+        \begin{tabular}{l}
+        + atom\_features: 44\\
+        + bond\_features: 6\\
+        + edge\_index: COO
+        \end{tabular}
+    };
+    
+    \node[classname, below=3.8cm of baseattr, xshift=3.5cm] (embname) {MolecularEmbeddings};
+    \node[class, below=0cm of embname] (embattr) {
+        \begin{tabular}{l}
+        + embedding\_type: str\\
+        + embedding\_dim: 128\\
+        + mol2vec: 300
+        \end{tabular}
+    };
+    
+    % Inheritance arrows
+    \draw[arrow] (rdkitname.north) -- ++(0,0.5) -| (baseattr.south);
+    \draw[arrow] (ecfpname.north) -- ++(0,0.5) -| (baseattr.south);
+    \draw[arrow] (maccsname.north) -- ++(0,0.5) -| (baseattr.south);
+    \draw[arrow] (pharmname.north) -- ++(0,0.3) -| ([xshift=-1cm]baseattr.south);
+    \draw[arrow] (graphname.north) -- ++(0,0.3) -- ++(0,0.2) -| (baseattr.south);
+    \draw[arrow] (embname.north) -- ++(0,0.3) -| ([xshift=1cm]baseattr.south);
+    
+\end{tikzpicture}
+\caption{Complete Featurization Module Class Diagram}
+\end{figure}
+
+\subsubsection{RDKit Molecular Descriptors}
+
+\begin{table}[H]
+\centering
+\caption{Key RDKit Molecular Descriptors}
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Category} & \textbf{Descriptors} & \textbf{Description} \\
+\midrule
+Physical & MolWt, HeavyAtomMolWt & Molecular weight \\
+ & ExactMolWt & Exact molecular weight \\
+\midrule
+Lipophilicity & MolLogP, TPSA & Partition coefficient, polar surface area \\
+\midrule
+H-bonding & NumHDonors, NumHAcceptors & Hydrogen bond donors/acceptors \\
+ & NHOHCount, NOCount & N-H/O-H count, N/O count \\
+\midrule
+Structural & NumRotatableBonds & Rotatable bond count \\
+ & NumAromaticRings & Aromatic ring count \\
+ & FractionCSP3 & Fraction of sp3 carbons \\
+\midrule
+Topological & BalabanJ, BertzCT & Graph complexity indices \\
+ & Chi0, Chi1, Kappa1 & Connectivity indices \\
+\midrule
+Electronic & MaxPartialCharge & Maximum partial charge \\
+ & MinPartialCharge & Minimum partial charge \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection{Fingerprint Comparison}
+
+\begin{table}[H]
+\centering
+\caption{Molecular Fingerprint Comparison}
+\begin{tabular}{@{}llll@{}}
+\toprule
+\textbf{Fingerprint} & \textbf{ECFP} & \textbf{MACCS} & \textbf{Use Case} \\
+\midrule
+Encoding & Circular & Predefined & - \\
+Bits & 1024 (configurable) & 167 (fixed) & - \\
+Radius & 2 (ECFP4), 3 (ECFP6) & N/A & - \\
+Substructures & Learned & Expert-defined & - \\
+Speed & Fast & Very fast & - \\
+Best for & Similarity, ML & Substructure search & - \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection{Pharmacophore Feature Types}
+
+\begin{table}[H]
+\centering
+\caption{Pharmacophore Feature Definitions}
+\begin{tabular}{@{}llp{6cm}@{}}
+\toprule
+\textbf{Feature Type} & \textbf{Symbol} & \textbf{Description} \\
+\midrule
+Hydrogen Bond Donor & HBD & Atoms that donate H in H-bonds (e.g., -NH, -OH) \\
+Hydrogen Bond Acceptor & HBA & Atoms that accept H in H-bonds (e.g., C=O, -N<) \\
+Positive Ionizable & PI & Groups that can be positively charged at physiological pH \\
+Negative Ionizable & NI & Groups that can be negatively charged at physiological pH \\
+Aromatic & Ar & Aromatic ring systems \\
+Hydrophobe & Hy & Hydrophobic regions (alkyl, aromatic) \\
+Lumped Hydrophobe & LH & Extended hydrophobic regions \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection{Graph Features for GNN}
+
+The GraphFeaturizer converts molecules into graph representations suitable for Graph Neural Networks.
+
+\begin{table}[H]
+\centering
+\caption{Atom (Node) Feature Vector (44 dimensions)}
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Feature} & \textbf{Encoding} & \textbf{Dimensions} \\
+\midrule
+Atom Type & One-hot [C, N, O, S, F, Si, P, Cl, Br, I, Other] & 11 \\
+Degree & One-hot [0, 1, 2, 3, 4, 5, 5+] & 7 \\
+Formal Charge & One-hot [-2, -1, 0, +1, +2] & 5 \\
+Hybridization & One-hot [SP, SP2, SP3, SP3D, SP3D2, Other] & 6 \\
+Is Aromatic & Binary & 1 \\
+Num Radical Electrons & Integer & 1 \\
+Total Num H & Integer & 1 \\
+Is In Ring & Binary & 1 \\
+\midrule
+\textbf{Total} & & \textbf{44} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Bond (Edge) Feature Vector (6 dimensions)}
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Feature} & \textbf{Encoding} & \textbf{Dimensions} \\
+\midrule
+Bond Type & One-hot [Single, Double, Triple, Aromatic] & 4 \\
+Is Conjugated & Binary & 1 \\
+Is In Ring & Binary & 1 \\
+\midrule
+\textbf{Total} & & \textbf{6} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Ensemble Methods}
+
+The pipeline supports multiple ensemble strategies for combining predictions from multiple models.
+
+\begin{table}[H]
+\centering
+\caption{Available Ensemble Methods}
+\begin{tabular}{@{}llp{6.5cm}@{}}
+\toprule
+\textbf{Method} & \textbf{Class} & \textbf{Description} \\
+\midrule
+Voting & VotingEnsemble & Average predictions from all models (weighted or unweighted) \\
+Stacking & StackingEnsemble & Meta-learner trained on base model predictions \\
+Top-K & TopKEnsemble & Select K best models based on CV performance \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection{Ensemble UML Class Diagram}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    class/.style={rectangle, draw, minimum width=4.5cm, font=\small},
+    classname/.style={rectangle, draw, fill=classcolor, minimum width=4.5cm, font=\bfseries\small},
+    abstract/.style={rectangle, draw, fill=interfacecolor, minimum width=5cm, font=\small},
+    abstractname/.style={rectangle, draw, fill=interfacecolor!70, minimum width=5cm, font=\bfseries\itshape\small},
+    arrow/.style={->, >=open triangle 60, thick},
+    node distance=0.1cm
+]
+
+    % BaseEnsemble (Abstract)
+    \node[abstractname] (basename) {\guillemotleft abstract\guillemotright\\BaseEnsemble};
+    \node[abstract, below=0cm of basename] (baseattr) {
+        \begin{tabular}{l}
+        + models: List[BaseModel]\\
+        + weights: List[float]\\
+        \hline
+        + fit(X, y) $\rightarrow$ self\\
+        + predict(X) $\rightarrow$ ndarray\\
+        \# \_combine\_predictions()
+        \end{tabular}
+    };
+    
+    % Voting
+    \node[classname, below=1.8cm of baseattr, xshift=-4cm] (votename) {VotingEnsemble};
+    \node[class, below=0cm of votename] (voteattr) {
+        \begin{tabular}{l}
+        + voting: str\\
+        \hspace{2mm}(mean, median)\\
+        + weighted: bool
+        \end{tabular}
+    };
+    
+    % Stacking
+    \node[classname, below=1.8cm of baseattr] (stackname) {StackingEnsemble};
+    \node[class, below=0cm of stackname] (stackattr) {
+        \begin{tabular}{l}
+        + meta\_learner: BaseModel\\
+        + cv\_folds: int\\
+        + passthrough: bool
+        \end{tabular}
+    };
+    
+    % Top-K
+    \node[classname, below=1.8cm of baseattr, xshift=4cm] (topkname) {TopKEnsemble};
+    \node[class, below=0cm of topkname] (topkattr) {
+        \begin{tabular}{l}
+        + k: int\\
+        + metric: str\\
+        + cv\_scores: Dict
+        \end{tabular}
+    };
+    
+    % Inheritance arrows
+    \draw[arrow] (votename.north) -- ++(0,0.5) -| (baseattr.south);
+    \draw[arrow] (stackname.north) -- (baseattr.south);
+    \draw[arrow] (topkname.north) -- ++(0,0.5) -| (baseattr.south);
+    
+\end{tikzpicture}
+\caption{Ensemble Methods Class Diagram}
+\end{figure}
+
+\subsubsection{Ensemble Strategy Comparison}
+
+\begin{table}[H]
+\centering
+\caption{Ensemble Strategy Comparison}
+\begin{tabular}{@{}llll@{}}
+\toprule
+\textbf{Strategy} & \textbf{Pros} & \textbf{Cons} & \textbf{Best For} \\
+\midrule
+Voting & Simple, fast, robust & Equal treatment & Diverse models \\
+Stacking & Learns optimal combination & Risk of overfitting & Large datasets \\
+Top-K & Focus on best performers & Ignores diversity & Limited compute \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Optimization Methods}
+
+\begin{table}[H]
+\centering
+\caption{Hyperparameter Optimization Methods}
+\begin{tabular}{@{}llp{6cm}@{}}
+\toprule
+\textbf{Method} & \textbf{Class} & \textbf{Description} \\
+\midrule
+Bayesian & BayesianOptimization & TPE sampler with Optuna, efficient search \\
+Grid Search & GridSearchCV & Exhaustive search over parameter grid \\
+Genetic & GeneticOptimization & Evolutionary algorithm for global optimization \\
 \bottomrule
 \end{tabular}
 \end{table}
